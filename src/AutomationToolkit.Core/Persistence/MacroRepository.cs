@@ -71,9 +71,16 @@ public sealed class MacroRepository(string folder) {
 	public string Save(Macro macro) {
 		Directory.CreateDirectory(macrosFolder);
 		var path = GetPathFor(macro.name);
-		using var stream = File.Create(path);
-		JsonSerializer.Serialize(stream, macro, MacroJson.Default);
+		SaveTo(path, macro);
 		return path;
+	}
+
+	/// <summary>指定したファイルパスへマクロを上書き保存する</summary>
+	/// <param name="filePath">保存先のマクロファイルのパス</param>
+	/// <param name="macro">保存するマクロ</param>
+	public void SaveTo(string filePath, Macro macro) {
+		using var stream = File.Create(filePath);
+		JsonSerializer.Serialize(stream, macro, MacroJson.Default);
 	}
 
 	/// <summary>マクロの名前を変更し、同じファイルへ上書き保存する</summary>
@@ -84,8 +91,7 @@ public sealed class MacroRepository(string folder) {
 	public void Rename(string filePath, string newName) {
 		var macro = Load(filePath);
 		macro.name = newName;
-		using var stream = File.Create(filePath);
-		JsonSerializer.Serialize(stream, macro, MacroJson.Default);
+		SaveTo(filePath, macro);
 	}
 
 	/// <summary>マクロファイルをゴミ箱へ移動する</summary>

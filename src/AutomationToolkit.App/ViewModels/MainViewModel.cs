@@ -40,6 +40,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable {
 	private MacroRepository repository;
 	/// <summary>再生中のマクロを停止するためのキャンセルトークンソース</summary>
 	private CancellationTokenSource? playbackCancellationTokenSource;
+	/// <summary>表示中のマクロ編集ダイアログのビューモデル。停止ホットキーの連携に使う</summary>
+	private MacroEditorViewModel? activeEditor;
 	/// <summary>再生中のマクロの steps 各要素の JSON 行番号。行番号不明なら空</summary>
 	private IReadOnlyList<int> playingStepLines = [];
 	/// <summary>UI 反映待ちの最新の再生進行状況</summary>
@@ -192,6 +194,30 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable {
 	[RelayCommand(CanExecute = nameof(isPlaying))]
 	private void StopPlayback() => playbackCancellationTokenSource?.Cancel();
 
+	/// <summary>選択中のマクロを編集ダイアログで開く</summary>
+	[RelayCommand(CanExecute = nameof(canPlay))]
+	private void EditMacro() {
+		if (SelectedMacro is null) return;
+		Macro macro;
+		try {
+			macro = repository.Load(SelectedMacro.filePath);
+		}
+		catch (MacroFormatException ex) {
+			MessageBox.Show(ex.Message, "編集できません", MessageBoxButton.OK, MessageBoxImage.Warning);
+			return;
+		}
+		var editorViewModel = new MacroEditorViewModel(macro, SelectedMacro.filePath, repository, player);
+		activeEditor = editorViewModel;
+		try {
+			new Views.MacroEditorDialog(editorViewModel) {
+				Owner = Application.Current.MainWindow,
+			}.ShowDialog();
+		}
+		finally {
+			activeEditor = null;
+		}
+	}
+
 	/// <summary>ホットキー選択ダイアログを開いてマクロにホットキーを割り当てる</summary>
 	/// <param name="item">割り当て対象のマクロの行。null なら選択中のマクロ</param>
 	[RelayCommand]
@@ -266,6 +292,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable {
 	/// <summary>停止ホットキーで再生を停止する</summary>
 	private void StopEverything() {
 		playbackCancellationTokenSource?.Cancel();
+		activeEditor?.StopTestPlaybackCommand.Execute(null);
 	}
 
 	/// <summary>マクロごとの再生ホットキーを登録し直す</summary>
@@ -345,13 +372,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable {
 		StopRecordingCommand.NotifyCanExecuteChanged();
 		PlayCommand.NotifyCanExecuteChanged();
 		StopPlaybackCommand.NotifyCanExecuteChanged();
+		EditMacroCommand.NotifyCanExecuteChanged();
 		DeleteMacroCommand.NotifyCanExecuteChanged();
 		StateChangedForTray?.Invoke();
 	}
 
-	/// <summary>選択変更時に再生コマンドの実行可否を更新する</summary>
+	/// <summary>選択変更時に再生・編集コマンドの実行可否を更新する</summary>
 	/// <param name="value">変更後の選択マクロ</param>
-	partial void OnSelectedMacroChanged(MacroItemViewModel? value) => PlayCommand.NotifyCanExecuteChanged();
+	partial void OnSelectedMacroChanged(MacroItemViewModel? value) {
+		PlayCommand.NotifyCanExecuteChanged();
+		EditMacroCommand.NotifyCanExecuteChanged();
+	}
 
 	/// <summary>再生スレッドからの進行通知を最新値だけ保持し、UI スレッドへ合流して反映する</summary>
 	/// <remarks>UI 更新のキューは常に高々 1 件になるため、高速再生でも再生スレッドをブロックしない</remarks>

@@ -23,6 +23,7 @@
             <Button Content="▶ 再生" Command="{Binding PlayCommand}" Width="80" Margin="0,0,6,0"/>
             <Button Content="■ 再生停止" Command="{Binding StopPlaybackCommand}" Width="90" Margin="0,0,6,0"/>
             <Separator Margin="6,0"/>
+            <Button Content="✎ 編集" Command="{Binding EditMacroCommand}" Width="80" Margin="0,0,6,0"/>
             <Button Content="🗑 削除" Command="{Binding DeleteMacroCommand}" Width="80" Margin="0,0,6,0"/>
             <Separator Margin="6,0"/>
             <Button Content="フォルダを開く" Command="{Binding OpenMacrosFolderCommand}" Width="100"/>
@@ -90,6 +91,6 @@
         </DataGrid>
 
         <TextBlock Grid.Row="3" Margin="0,8,0,0" Foreground="Gray" TextWrapping="Wrap"
-                   Text="ヒント: 名前・速度・ループはセルをダブルクリックで編集。ホットキー欄をクリックで割り当て。Delete キーで選択マクロをゴミ箱へ。既定の録画トグルは Ctrl+Alt+R、全停止は Ctrl+Alt+S。"/>
+                   Text="ヒント: 名前・速度・ループはセルをダブルクリックで編集。編集ボタンでステップの一括整理。ホットキー欄をクリックで割り当て。Delete キーで選択マクロをゴミ箱へ。既定の録画トグルは Ctrl+Alt+R、全停止は Ctrl+Alt+S。"/>
     </Grid>
 </Window>

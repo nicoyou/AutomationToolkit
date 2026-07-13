@@ -33,6 +33,34 @@ public class MacroRepositoryTests : IDisposable {
 		Assert.Equal(path, Assert.Single(repo.ListMacroFiles()));
 	}
 
+	/// <summary>指定したパスへ上書き保存したマクロを読み込むと内容が保持されている</summary>
+	[Fact]
+	public void SaveTo_OverwritesSpecifiedFile() {
+		var repo = new MacroRepository(tempDir);
+		var path = repo.Save(new Macro { name = "original" });
+
+		var edited = repo.Load(path);
+		edited.steps.Add(new MouseDownStep { button = MouseButton.Left, x = 1, y = 2, delayBeforeMs = 50 });
+		repo.SaveTo(path, edited);
+
+		var loaded = repo.Load(path);
+		var step = Assert.IsType<MouseDownStep>(Assert.Single(loaded.steps));
+		Assert.Equal(50, step.delayBeforeMs);
+		Assert.Equal(path, Assert.Single(repo.ListMacroFiles()));
+	}
+
+	/// <summary>マクロ名から導出されるパスと異なるパスへも保存できる</summary>
+	[Fact]
+	public void SaveTo_WritesToPathDifferentFromNameDerivedPath() {
+		var repo = new MacroRepository(tempDir);
+		Directory.CreateDirectory(tempDir);
+		var path = Path.Combine(tempDir, "renamed-file.json");
+
+		repo.SaveTo(path, new Macro { name = "違う名前のマクロ" });
+
+		Assert.Equal("違う名前のマクロ", repo.Load(path).name);
+	}
+
 	/// <summary>壊れた JSON を読み込むと MacroFormatException が発生する</summary>
 	[Fact]
 	public void Load_CorruptJson_ThrowsMacroFormatException() {
