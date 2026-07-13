@@ -1,0 +1,80 @@
+<Window x:Class="AutomationToolkit.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:AutomationToolkit.App.ViewModels"
+        Title="AutomationToolkit" Height="480" Width="720"
+        d:DataContext="{d:DesignInstance vm:MainViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ツールバー -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="● 録画" Command="{Binding RecordCommand}" Width="80" Margin="0,0,6,0"/>
+            <Button Content="■ 録画停止" Command="{Binding StopRecordingCommand}" Width="90" Margin="0,0,6,0"/>
+            <Separator Margin="6,0"/>
+            <Button Content="▶ 再生" Command="{Binding PlayCommand}" Width="80" Margin="0,0,6,0"/>
+            <Button Content="■ 再生停止" Command="{Binding StopPlaybackCommand}" Width="90" Margin="0,0,6,0"/>
+            <Separator Margin="6,0"/>
+            <Button Content="更新" Command="{Binding RefreshMacrosCommand}" Width="60" Margin="0,0,6,0"/>
+            <Button Content="フォルダを開く" Command="{Binding OpenMacrosFolderCommand}" Width="100"/>
+        </StackPanel>
+
+        <!-- 状態表示 -->
+        <Border Grid.Row="1" Padding="8,6" Margin="0,0,0,8" CornerRadius="4">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="#EEEEEE"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding State}" Value="{x:Static vm:AppState.Recording}">
+                            <Setter Property="Background" Value="#FFE0E0"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding State}" Value="{x:Static vm:AppState.Playing}">
+                            <Setter Property="Background" Value="#E0F5E0"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding StatusText}" FontWeight="Bold"/>
+                <TextBlock Text="{Binding RecordedStepCount, StringFormat=' ({0} ステップ)'}"
+                           Visibility="{Binding State, Converter={StaticResource RecordingVisibility}}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- マクロ一覧 -->
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Macros}"
+                  SelectedItem="{Binding SelectedMacro}"
+                  AutoGenerateColumns="False" CanUserAddRows="False"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  IsReadOnly="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="名前" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
+                <DataGridTemplateColumn Header="ホットキー" Width="140">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding HotkeyDisplay}"
+                                    HorizontalContentAlignment="Left"
+                                    Background="Transparent" BorderThickness="0"
+                                    Command="{Binding DataContext.AssignHotkeyCommand,
+                                        RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                    CommandParameter="{Binding}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="速度" Binding="{Binding Speed, StringFormat=N1}" Width="60"/>
+                <DataGridTextColumn Header="ループ" Binding="{Binding LoopCount}" Width="60"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBlock Grid.Row="3" Margin="0,8,0,0" Foreground="Gray" TextWrapping="Wrap"
+                   Text="ヒント: 速度・ループはセルをダブルクリックで編集。ホットキー欄をクリックで割り当て。既定の録画トグルは Ctrl+Alt+R、全停止は Ctrl+Alt+S。"/>
+    </Grid>
+</Window>

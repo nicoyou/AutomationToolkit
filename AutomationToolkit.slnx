@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/AutomationToolkit.App/AutomationToolkit.App.csproj" />
     <Project Path="src/AutomationToolkit.Core/AutomationToolkit.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">
