@@ -43,6 +43,9 @@ public sealed partial class MacroEditorViewModel : ObservableObject {
 	/// <summary>直前の編集操作の結果表示。空なら非表示</summary>
 	[ObservableProperty]
 	private string operationResultText = string.Empty;
+	/// <summary>マクロの推定実行時間の表示</summary>
+	[ObservableProperty]
+	private string totalDurationText = string.Empty;
 	/// <summary>mouseDown の待機時間の統計表示</summary>
 	[ObservableProperty]
 	private string mouseDownStatisticsText = string.Empty;
@@ -190,6 +193,7 @@ public sealed partial class MacroEditorViewModel : ObservableObject {
 			.ToList();
 		MouseDownStatisticsText = FormatStatistics(MacroStepEditor.CalculateDelayStatistics<MouseDownStep>(macro.steps));
 		MouseUpStatisticsText = FormatStatistics(MacroStepEditor.CalculateDelayStatistics<MouseUpStep>(macro.steps));
+		TotalDurationText = $"実行時間: {FormatDuration(MacroStepEditor.CalculateTotalDurationMs(macro.steps))}";
 		OnPropertyChanged(nameof(isDirty));
 		UndoCommand.NotifyCanExecuteChanged();
 	}
@@ -200,6 +204,16 @@ public sealed partial class MacroEditorViewModel : ObservableObject {
 	private static string FormatStatistics(DelayStatistics? statistics) {
 		if (statistics is null) return "対象なし";
 		return $"{statistics.count} 件 | 最小 {statistics.minimumMs} / 中央 {statistics.medianMs:0.#} / 最大 {statistics.maximumMs} ms";
+	}
+
+	/// <summary>実行時間を表示用文字列へ整形する</summary>
+	/// <param name="totalMs">実行時間 ( ms )</param>
+	/// <returns>実行時間の表示用文字列</returns>
+	private static string FormatDuration(long totalMs) {
+		var totalSeconds = totalMs / 1000.0;
+		if (totalSeconds < 60) return $"{totalSeconds:0.0} 秒";
+		var minutes = (long)(totalSeconds / 60);
+		return $"{minutes} 分 {totalSeconds - minutes * 60:0.0} 秒";
 	}
 
 	/// <summary>テスト再生状態の変化に応じて各コマンドの実行可否を更新する</summary>

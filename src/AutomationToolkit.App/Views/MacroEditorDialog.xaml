@@ -30,6 +30,8 @@
                 <Button Content="■ 停止" Command="{Binding StopTestPlaybackCommand}" Width="80" Margin="0,0,6,0"/>
                 <Separator Margin="6,0"/>
                 <Button Content="↶ 元に戻す" Command="{Binding UndoCommand}" Width="100"/>
+                <Separator Margin="6,0"/>
+                <TextBlock Text="{Binding TotalDurationText}" VerticalAlignment="Center"/>
             </StackPanel>
             <TextBlock Text="* 変更あり" HorizontalAlignment="Right" VerticalAlignment="Center"
                        Foreground="DarkOrange" FontWeight="Bold"

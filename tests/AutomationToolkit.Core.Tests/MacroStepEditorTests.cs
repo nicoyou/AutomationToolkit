@@ -225,6 +225,28 @@ public class MacroStepEditorTests {
 		Assert.Throws<ArgumentOutOfRangeException>(() => MacroStepEditor.UnifyDelays<MouseDownStep>([], 50, -1));
 	}
 
+	/// <summary>全ステップの待機時間の合計が推定実行時間として返る</summary>
+	[Fact]
+	public void CalculateTotalDurationMs_SumsAllDelays() {
+		var steps = new List<MacroStep> { Key(100), Move(20), Down(delayMs: 30), Up(delayMs: 50) };
+
+		Assert.Equal(200, MacroStepEditor.CalculateTotalDurationMs(steps));
+	}
+
+	/// <summary>空のステップ列では推定実行時間が 0 になる</summary>
+	[Fact]
+	public void CalculateTotalDurationMs_EmptySteps_ReturnsZero() {
+		Assert.Equal(0, MacroStepEditor.CalculateTotalDurationMs([]));
+	}
+
+	/// <summary>int の範囲を超える合計でもオーバーフローせずに計算できる</summary>
+	[Fact]
+	public void CalculateTotalDurationMs_LargeDelays_DoesNotOverflow() {
+		var steps = new List<MacroStep> { Key(int.MaxValue), Key(int.MaxValue) };
+
+		Assert.Equal(int.MaxValue * 2L, MacroStepEditor.CalculateTotalDurationMs(steps));
+	}
+
 	/// <summary>奇数個の統計では中央値がソート後の中央要素になる</summary>
 	[Fact]
 	public void CalculateDelayStatistics_OddCount_MedianIsMiddleValue() {

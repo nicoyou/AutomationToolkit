@@ -71,6 +71,13 @@ public static class MacroStepEditor {
 		return changedCount;
 	}
 
+	/// <summary>全ステップの待機時間を合計した推定実行時間を計算する</summary>
+	/// <remarks>入力送出自体の所要時間は待機時間に比べて十分小さいため含めない</remarks>
+	/// <param name="steps">対象のステップ列</param>
+	/// <returns>推定実行時間 ( ms )</returns>
+	public static long CalculateTotalDurationMs(IReadOnlyList<MacroStep> steps) =>
+		steps.Sum(step => (long)step.delayBeforeMs);
+
 	/// <summary>指定型ステップの delayBeforeMs の統計を計算する</summary>
 	/// <param name="steps">対象のステップ列</param>
 	/// <returns>統計値。対象が 0 件なら null</returns>
