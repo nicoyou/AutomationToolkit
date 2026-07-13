@@ -50,7 +50,7 @@
         </Border>
 
         <!-- マクロ一覧 -->
-        <DataGrid Grid.Row="2" ItemsSource="{Binding Macros}"
+        <DataGrid Grid.Row="2" ItemsSource="{Binding macros}"
                   SelectedItem="{Binding SelectedMacro}"
                   AutoGenerateColumns="False" CanUserAddRows="False"
                   HeadersVisibility="Column" GridLinesVisibility="Horizontal"
@@ -60,7 +60,7 @@
                 <DataGridTemplateColumn Header="ホットキー" Width="140">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Button Content="{Binding HotkeyDisplay}"
+                            <Button Content="{Binding hotkeyDisplay}"
                                     HorizontalContentAlignment="Left"
                                     Background="Transparent" BorderThickness="0"
                                     Command="{Binding DataContext.AssignHotkeyCommand,
