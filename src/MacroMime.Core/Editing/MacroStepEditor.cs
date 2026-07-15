@@ -53,23 +53,36 @@ public static class MacroStepEditor {
 		return removedCount;
 	}
 
-	/// <summary>指定位置のステップを 1 件削除する</summary>
+	/// <summary>指定位置のステップをまとめて削除する</summary>
+	/// <remarks>加算モードで連続した位置を削除した場合、待機時間は次に残るステップまで累積して加算される</remarks>
 	/// <param name="steps">編集するステップ列</param>
-	/// <param name="index">削除するステップの 0 始まりの位置</param>
+	/// <param name="indices">削除するステップの 0 始まりの位置。順不同・重複ありでもよい</param>
 	/// <param name="delayHandling">削除したステップの delayBeforeMs の扱い</param>
 	/// <returns>削除したステップ数</returns>
 	/// <exception cref="ArgumentOutOfRangeException">位置がステップ列の範囲外の場合</exception>
-	public static int RemoveStepAt(List<MacroStep> steps, int index, RemovedDelayHandling delayHandling) {
-		if (index < 0 || index >= steps.Count) {
-			throw new ArgumentOutOfRangeException(nameof(index), "削除位置がステップ列の範囲外です");
+	public static int RemoveStepsAt(List<MacroStep> steps, IEnumerable<int> indices, RemovedDelayHandling delayHandling) {
+		var indexSet = new HashSet<int>(indices);
+		if (indexSet.Any(index => index < 0 || index >= steps.Count)) {
+			throw new ArgumentOutOfRangeException(nameof(indices), "削除位置がステップ列の範囲外です");
 		}
-		var removed = steps[index];
-		steps.RemoveAt(index);
+		var remaining = new List<MacroStep>(steps.Count);
+		var pendingDelayMs = 0;
+		var removedCount = 0;
+		for (var index = 0; index < steps.Count; index++) {
+			var step = steps[index];
+			if (indexSet.Contains(index)) {
+				if (delayHandling == RemovedDelayHandling.AddToNextStep) pendingDelayMs += step.delayBeforeMs;
+				removedCount++;
+				continue;
+			}
+			step.delayBeforeMs += pendingDelayMs;
+			pendingDelayMs = 0;
+			remaining.Add(step);
+		}
 		// 末尾の削除分は加算先が無いため破棄する ( マクロ終端の待機は再生結果に影響しない )
-		if (delayHandling == RemovedDelayHandling.AddToNextStep && index < steps.Count) {
-			steps[index].delayBeforeMs += removed.delayBeforeMs;
-		}
-		return 1;
+		steps.Clear();
+		steps.AddRange(remaining);
+		return removedCount;
 	}
 
 	/// <summary>指定型ステップの delayBeforeMs のうち、しきい値以上のものを指定値へ短縮する</summary>

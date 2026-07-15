@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using MacroMime.App.ViewModels;
 
 namespace MacroMime.App.Views;
@@ -18,6 +19,15 @@ public partial class MacroEditorDialog : Window {
 			closeRequestedByViewModel = true;
 			DialogResult = saved;
 		};
+	}
+
+	/// <summary>ステップ一覧の選択変更をビューモデルへ反映する</summary>
+	/// <remarks>DataGrid の SelectedItems はバインドできないため code-behind で同期する</remarks>
+	/// <param name="sender">イベントの送信元</param>
+	/// <param name="e">選択変更イベントの引数</param>
+	private void OnStepDataGridSelectionChanged(object sender, SelectionChangedEventArgs e) {
+		if (DataContext is not MacroEditorViewModel viewModel) return;
+		viewModel.SelectedStepRows = StepDataGrid.SelectedItems.Cast<MacroStepRowViewModel>().ToList();
 	}
 
 	/// <summary>テスト再生中は先に停止させ、未保存の変更があれば保存確認する</summary>

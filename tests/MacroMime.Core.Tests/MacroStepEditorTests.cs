@@ -160,10 +160,10 @@ public class MacroStepEditorTests {
 
 	/// <summary>加算モードでは削除したステップの待機時間が次のステップへ加算される</summary>
 	[Fact]
-	public void RemoveStepAt_AddToNextStep_AddsDelayToNextStep() {
+	public void RemoveStepsAt_AddToNextStep_AddsDelayToNextStep() {
 		var steps = new List<MacroStep> { Key(10), Move(40), Down(delayMs: 5) };
 
-		var removed = MacroStepEditor.RemoveStepAt(steps, 1, RemovedDelayHandling.AddToNextStep);
+		var removed = MacroStepEditor.RemoveStepsAt(steps, [1], RemovedDelayHandling.AddToNextStep);
 
 		Assert.Equal(1, removed);
 		Assert.Equal(2, steps.Count);
@@ -173,21 +173,43 @@ public class MacroStepEditorTests {
 
 	/// <summary>破棄モードでは削除したステップの待機時間が次のステップへ加算されない</summary>
 	[Fact]
-	public void RemoveStepAt_Discard_DoesNotAddDelay() {
+	public void RemoveStepsAt_Discard_DoesNotAddDelay() {
 		var steps = new List<MacroStep> { Key(10), Move(40), Down(delayMs: 5) };
 
-		var removed = MacroStepEditor.RemoveStepAt(steps, 1, RemovedDelayHandling.Discard);
+		var removed = MacroStepEditor.RemoveStepsAt(steps, [1], RemovedDelayHandling.Discard);
 
 		Assert.Equal(1, removed);
 		Assert.Equal([10, 5], steps.Select(step => step.delayBeforeMs));
 	}
 
+	/// <summary>加算モードで連続した複数行を削除すると、待機時間が次に残るステップまで累積して加算される</summary>
+	[Fact]
+	public void RemoveStepsAt_AddToNextStep_ContiguousRows_AccumulatesDelays() {
+		var steps = new List<MacroStep> { Key(10), Move(40), Move(30), Down(delayMs: 5) };
+
+		var removed = MacroStepEditor.RemoveStepsAt(steps, [1, 2], RemovedDelayHandling.AddToNextStep);
+
+		Assert.Equal(2, removed);
+		Assert.Equal([10, 75], steps.Select(step => step.delayBeforeMs));
+	}
+
+	/// <summary>離れた複数行を順不同で指定してもそれぞれ削除される</summary>
+	[Fact]
+	public void RemoveStepsAt_UnorderedIndices_RemovesEachRow() {
+		var steps = new List<MacroStep> { Key(10), Move(40), Key(20), Move(30), Key(5) };
+
+		var removed = MacroStepEditor.RemoveStepsAt(steps, [3, 1], RemovedDelayHandling.AddToNextStep);
+
+		Assert.Equal(2, removed);
+		Assert.Equal([10, 60, 35], steps.Select(step => step.delayBeforeMs));
+	}
+
 	/// <summary>加算モードで末尾のステップを削除すると、加算先が無いため待機時間は破棄される</summary>
 	[Fact]
-	public void RemoveStepAt_AddToNextStep_TrailingStepIsDiscarded() {
+	public void RemoveStepsAt_AddToNextStep_TrailingStepIsDiscarded() {
 		var steps = new List<MacroStep> { Key(10), Move(999) };
 
-		MacroStepEditor.RemoveStepAt(steps, 1, RemovedDelayHandling.AddToNextStep);
+		MacroStepEditor.RemoveStepsAt(steps, [1], RemovedDelayHandling.AddToNextStep);
 
 		var key = Assert.IsType<KeyDownStep>(Assert.Single(steps));
 		Assert.Equal(10, key.delayBeforeMs);
@@ -195,22 +217,34 @@ public class MacroStepEditorTests {
 
 	/// <summary>先頭のステップを削除すると次のステップが先頭になり、加算モードで待機時間が加算される</summary>
 	[Fact]
-	public void RemoveStepAt_FirstStep_AddsDelayToNewFirstStep() {
+	public void RemoveStepsAt_FirstStep_AddsDelayToNewFirstStep() {
 		var steps = new List<MacroStep> { Move(40), Key(10) };
 
-		MacroStepEditor.RemoveStepAt(steps, 0, RemovedDelayHandling.AddToNextStep);
+		MacroStepEditor.RemoveStepsAt(steps, [0], RemovedDelayHandling.AddToNextStep);
 
 		var key = Assert.IsType<KeyDownStep>(Assert.Single(steps));
 		Assert.Equal(50, key.delayBeforeMs);
 	}
 
-	/// <summary>範囲外の位置を指定すると ArgumentOutOfRangeException が発生する</summary>
+	/// <summary>全ての行を削除するとステップ列が空になる</summary>
 	[Fact]
-	public void RemoveStepAt_IndexOutOfRange_Throws() {
+	public void RemoveStepsAt_AllRows_ClearsSteps() {
+		var steps = new List<MacroStep> { Key(10), Move(40) };
+
+		var removed = MacroStepEditor.RemoveStepsAt(steps, [0, 1], RemovedDelayHandling.AddToNextStep);
+
+		Assert.Equal(2, removed);
+		Assert.Empty(steps);
+	}
+
+	/// <summary>範囲外の位置を含むと ArgumentOutOfRangeException が発生し、ステップ列は変化しない</summary>
+	[Fact]
+	public void RemoveStepsAt_IndexOutOfRange_Throws() {
 		var steps = new List<MacroStep> { Key(10) };
 
-		Assert.Throws<ArgumentOutOfRangeException>(() => MacroStepEditor.RemoveStepAt(steps, -1, RemovedDelayHandling.Discard));
-		Assert.Throws<ArgumentOutOfRangeException>(() => MacroStepEditor.RemoveStepAt(steps, 1, RemovedDelayHandling.Discard));
+		Assert.Throws<ArgumentOutOfRangeException>(() => MacroStepEditor.RemoveStepsAt(steps, [-1], RemovedDelayHandling.Discard));
+		Assert.Throws<ArgumentOutOfRangeException>(() => MacroStepEditor.RemoveStepsAt(steps, [0, 1], RemovedDelayHandling.Discard));
+		Assert.Single(steps);
 	}
 
 	/// <summary>しきい値ちょうどの待機時間は変換対象になる</summary>

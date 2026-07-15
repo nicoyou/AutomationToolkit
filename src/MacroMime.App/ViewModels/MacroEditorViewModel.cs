@@ -33,9 +33,12 @@ public sealed partial class MacroEditorViewModel : ObservableObject {
 	/// <summary>ステップ一覧の表示データ</summary>
 	[ObservableProperty]
 	private IReadOnlyList<MacroStepRowViewModel> stepRows = [];
-	/// <summary>ステップ一覧で選択中の行。未選択なら null</summary>
+	/// <summary>ステップ一覧で選択中の行。未選択なら null。複数選択時は先頭の選択行</summary>
 	[ObservableProperty]
 	private MacroStepRowViewModel? selectedStepRow;
+	/// <summary>ステップ一覧で選択中の全ての行</summary>
+	[ObservableProperty]
+	private IReadOnlyList<MacroStepRowViewModel> selectedStepRows = [];
 	/// <summary>テスト再生中かどうか</summary>
 	[ObservableProperty]
 	private bool isTestPlaying;
@@ -79,7 +82,7 @@ public sealed partial class MacroEditorViewModel : ObservableObject {
 	/// <summary>元に戻す操作を実行できるかどうか</summary>
 	private bool canUndo => isDirty && canEdit;
 	/// <summary>選択中のステップを削除できるかどうか</summary>
-	private bool canDeleteStep => canEdit && SelectedStepRow != null;
+	private bool canDeleteSteps => canEdit && SelectedStepRows.Count > 0;
 	/// <summary>削除したステップの待機時間の扱いの現在の設定</summary>
 	private RemovedDelayHandling removedDelayHandling =>
 		AddRemovedDelayToNextStep ? RemovedDelayHandling.AddToNextStep : RemovedDelayHandling.Discard;
@@ -104,16 +107,18 @@ public sealed partial class MacroEditorViewModel : ObservableObject {
 		OperationResultText = $"不要な mouseMove を {removedCount} 件削除しました";
 	}
 
-	/// <summary>ステップ一覧で選択中のステップを削除する</summary>
-	[RelayCommand(CanExecute = nameof(canDeleteStep))]
-	private void DeleteSelectedStep() {
-		if (SelectedStepRow is null) return;
-		var index = SelectedStepRow.index - 1;
-		var description = SelectedStepRow.description;
-		ApplyEdit(steps => MacroStepEditor.RemoveStepAt(steps, index, removedDelayHandling));
-		OperationResultText = $"ステップ {index + 1} ( {description} ) を削除しました";
+	/// <summary>ステップ一覧で選択中の全てのステップを削除する</summary>
+	[RelayCommand(CanExecute = nameof(canDeleteSteps))]
+	private void DeleteSelectedSteps() {
+		if (SelectedStepRows.Count == 0) return;
+		var targets = SelectedStepRows.OrderBy(row => row.index).ToList();
+		var firstIndex = targets[0].index - 1;
+		ApplyEdit(steps => MacroStepEditor.RemoveStepsAt(steps, targets.Select(row => row.index - 1), removedDelayHandling));
+		OperationResultText = targets.Count == 1
+			? $"ステップ {targets[0].index} ( {targets[0].description} ) を削除しました"
+			: $"選択した {targets.Count} 件のステップを削除しました";
 		// 削除した位置に近い行を選択し直して連続削除しやすくする
-		if (StepRows.Count > 0) SelectedStepRow = StepRows[Math.Min(index, StepRows.Count - 1)];
+		if (StepRows.Count > 0) SelectedStepRow = StepRows[Math.Min(firstIndex, StepRows.Count - 1)];
 	}
 
 	/// <summary>しきい値以上の mouseDown の待機時間を指定値へ短縮する</summary>
@@ -260,14 +265,14 @@ public sealed partial class MacroEditorViewModel : ObservableObject {
 	}
 
 	/// <summary>選択行の変化に応じて削除コマンドの実行可否を更新する</summary>
-	/// <param name="value">変更後の選択行</param>
-	partial void OnSelectedStepRowChanged(MacroStepRowViewModel? value) => DeleteSelectedStepCommand.NotifyCanExecuteChanged();
+	/// <param name="value">変更後の選択行の一覧</param>
+	partial void OnSelectedStepRowsChanged(IReadOnlyList<MacroStepRowViewModel> value) => DeleteSelectedStepsCommand.NotifyCanExecuteChanged();
 
 	/// <summary>テスト再生状態の変化に応じて各コマンドの実行可否を更新する</summary>
 	/// <param name="value">変更後のテスト再生状態</param>
 	partial void OnIsTestPlayingChanged(bool value) {
 		RemoveNonDragMouseMovesCommand.NotifyCanExecuteChanged();
-		DeleteSelectedStepCommand.NotifyCanExecuteChanged();
+		DeleteSelectedStepsCommand.NotifyCanExecuteChanged();
 		UnifyClickCooldownCommand.NotifyCanExecuteChanged();
 		UnifyClickDurationCommand.NotifyCanExecuteChanged();
 		UndoCommand.NotifyCanExecuteChanged();
