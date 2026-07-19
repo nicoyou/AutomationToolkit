@@ -19,6 +19,10 @@ public partial class MacroEditorDialog : Window {
 			closeRequestedByViewModel = true;
 			DialogResult = saved;
 		};
+		viewModel.AddStepRequested += () => {
+			var dialog = new AddStepDialog(new AddStepViewModel()) { Owner = this };
+			if (dialog.ShowDialog() == true && dialog.createdStep is not null) viewModel.InsertNewStep(dialog.createdStep);
+		};
 	}
 
 	/// <summary>ステップ一覧の選択変更をビューモデルへ反映する</summary>

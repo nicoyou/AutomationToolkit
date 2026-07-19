@@ -72,6 +72,8 @@ public sealed partial class MacroEditorViewModel : ObservableObject {
 
 	/// <summary>ダイアログを閉じる要求。引数が true なら保存済み</summary>
 	public event Action<bool>? CloseRequested;
+	/// <summary>ステップ追加ダイアログの表示要求</summary>
+	public event Action? AddStepRequested;
 
 	/// <summary>未保存の変更があるかどうか</summary>
 	public bool isDirty => undoStack.Count > 0;
@@ -83,6 +85,8 @@ public sealed partial class MacroEditorViewModel : ObservableObject {
 	private bool canUndo => isDirty && canEdit;
 	/// <summary>選択中のステップを削除できるかどうか</summary>
 	private bool canDeleteSteps => canEdit && SelectedStepRows.Count > 0;
+	/// <summary>選択中のステップを複製できるかどうか</summary>
+	private bool canDuplicateSteps => canEdit && SelectedStepRows.Count > 0;
 	/// <summary>削除したステップの待機時間の扱いの現在の設定</summary>
 	private RemovedDelayHandling removedDelayHandling =>
 		AddRemovedDelayToNextStep ? RemovedDelayHandling.AddToNextStep : RemovedDelayHandling.Discard;
@@ -115,10 +119,39 @@ public sealed partial class MacroEditorViewModel : ObservableObject {
 		var firstIndex = targets[0].index - 1;
 		ApplyEdit(steps => MacroStepEditor.RemoveStepsAt(steps, targets.Select(row => row.index - 1), removedDelayHandling));
 		OperationResultText = targets.Count == 1
-			? $"ステップ {targets[0].index} ( {targets[0].description} ) を削除しました"
+			? $"ステップ {targets[0].index} {targets[0].description} を削除しました"
 			: $"選択した {targets.Count} 件のステップを削除しました";
 		// 削除した位置に近い行を選択し直して連続削除しやすくする
 		if (StepRows.Count > 0) SelectedStepRow = StepRows[Math.Min(firstIndex, StepRows.Count - 1)];
+	}
+
+	/// <summary>ステップ追加ダイアログの表示を要求する</summary>
+	[RelayCommand(CanExecute = nameof(canEdit))]
+	private void AddStep() => AddStepRequested?.Invoke();
+
+	/// <summary>ステップ一覧で選択中の全てのステップを複製して最終選択行の直下へ挿入する</summary>
+	[RelayCommand(CanExecute = nameof(canDuplicateSteps))]
+	private void DuplicateSelectedSteps() {
+		if (SelectedStepRows.Count == 0) return;
+		var targets = SelectedStepRows.OrderBy(row => row.index).ToList();
+		// 元行の待機時間編集と連動しないよう deep clone してから挿入する
+		var clones = MacroCloner.CloneSteps(targets.Select(row => macro.steps[row.index - 1]).ToList());
+		var insertIndex = targets[^1].index;
+		ApplyEdit(steps => MacroStepEditor.InsertStepsAt(steps, insertIndex, clones));
+		OperationResultText = targets.Count == 1
+			? $"ステップ {targets[0].index} {targets[0].description} を複製しました"
+			: $"選択した {targets.Count} 件のステップを複製しました";
+		SelectedStepRow = StepRows[insertIndex];
+	}
+
+	/// <summary>ダイアログで作成されたステップを選択行の直下へ挿入する。未選択なら末尾へ追加する</summary>
+	/// <param name="step">挿入するステップ</param>
+	public void InsertNewStep(MacroStep step) {
+		var insertIndex = SelectedStepRows.Count > 0 ? SelectedStepRows.Max(row => row.index) : macro.steps.Count;
+		ApplyEdit(steps => MacroStepEditor.InsertStepsAt(steps, insertIndex, [step]));
+		OperationResultText = $"ステップ {insertIndex + 1} に {MacroStepFormatter.Describe(step)} を追加しました";
+		// 追加した行を選択して連続追加しやすくする
+		SelectedStepRow = StepRows[insertIndex];
 	}
 
 	/// <summary>しきい値以上の mouseDown の待機時間を指定値へ短縮する</summary>
@@ -266,13 +299,18 @@ public sealed partial class MacroEditorViewModel : ObservableObject {
 
 	/// <summary>選択行の変化に応じて削除コマンドの実行可否を更新する</summary>
 	/// <param name="value">変更後の選択行の一覧</param>
-	partial void OnSelectedStepRowsChanged(IReadOnlyList<MacroStepRowViewModel> value) => DeleteSelectedStepsCommand.NotifyCanExecuteChanged();
+	partial void OnSelectedStepRowsChanged(IReadOnlyList<MacroStepRowViewModel> value) {
+		DeleteSelectedStepsCommand.NotifyCanExecuteChanged();
+		DuplicateSelectedStepsCommand.NotifyCanExecuteChanged();
+	}
 
 	/// <summary>テスト再生状態の変化に応じて各コマンドの実行可否を更新する</summary>
 	/// <param name="value">変更後のテスト再生状態</param>
 	partial void OnIsTestPlayingChanged(bool value) {
 		RemoveNonDragMouseMovesCommand.NotifyCanExecuteChanged();
+		AddStepCommand.NotifyCanExecuteChanged();
 		DeleteSelectedStepsCommand.NotifyCanExecuteChanged();
+		DuplicateSelectedStepsCommand.NotifyCanExecuteChanged();
 		UnifyClickCooldownCommand.NotifyCanExecuteChanged();
 		UnifyClickDurationCommand.NotifyCanExecuteChanged();
 		UndoCommand.NotifyCanExecuteChanged();

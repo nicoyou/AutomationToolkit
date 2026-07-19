@@ -247,6 +247,90 @@ public class MacroStepEditorTests {
 		Assert.Single(steps);
 	}
 
+	/// <summary>中間位置へ挿入すると指定位置に格納され、挿入件数が返る</summary>
+	[Fact]
+	public void InsertStepsAt_InsertsAtMiddle() {
+		var steps = new List<MacroStep> { Key(10), Down(delayMs: 20) };
+		var inserted = Move(30);
+
+		var count = MacroStepEditor.InsertStepsAt(steps, 1, [inserted]);
+
+		Assert.Equal(1, count);
+		Assert.Equal(3, steps.Count);
+		Assert.Same(inserted, steps[1]);
+	}
+
+	/// <summary>複数件の挿入では順序が保たれる</summary>
+	[Fact]
+	public void InsertStepsAt_InsertsMultipleStepsInOrder() {
+		var steps = new List<MacroStep> { Key(10) };
+		var first = Down();
+		var second = Up();
+
+		var count = MacroStepEditor.InsertStepsAt(steps, 1, [first, second]);
+
+		Assert.Equal(2, count);
+		Assert.Same(first, steps[1]);
+		Assert.Same(second, steps[2]);
+	}
+
+	/// <summary>位置 0 を指定すると先頭へ挿入される</summary>
+	[Fact]
+	public void InsertStepsAt_InsertsAtHead() {
+		var steps = new List<MacroStep> { Key(10) };
+		var inserted = Move();
+
+		MacroStepEditor.InsertStepsAt(steps, 0, [inserted]);
+
+		Assert.Same(inserted, steps[0]);
+	}
+
+	/// <summary>ステップ数と同じ位置を指定すると末尾へ追加され、空のステップ列にも挿入できる</summary>
+	[Fact]
+	public void InsertStepsAt_InsertsAtTail() {
+		var steps = new List<MacroStep>();
+		var first = Key(10);
+		var second = Move();
+
+		MacroStepEditor.InsertStepsAt(steps, 0, [first]);
+		MacroStepEditor.InsertStepsAt(steps, steps.Count, [second]);
+
+		Assert.Same(first, steps[0]);
+		Assert.Same(second, steps[1]);
+	}
+
+	/// <summary>空のステップ列を挿入すると 0 件が返り、元の列は変化しない</summary>
+	[Fact]
+	public void InsertStepsAt_EmptyNewStepsReturnsZero() {
+		var steps = new List<MacroStep> { Key(10) };
+
+		var count = MacroStepEditor.InsertStepsAt(steps, 1, []);
+
+		Assert.Equal(0, count);
+		Assert.Single(steps);
+	}
+
+	/// <summary>範囲外の挿入位置では ArgumentOutOfRangeException が発生し、ステップ列は変化しない</summary>
+	[Theory]
+	[InlineData(-1)]
+	[InlineData(2)]
+	public void InsertStepsAt_ThrowsWhenIndexOutOfRange(int insertIndex) {
+		var steps = new List<MacroStep> { Key(10) };
+
+		Assert.Throws<ArgumentOutOfRangeException>(() => MacroStepEditor.InsertStepsAt(steps, insertIndex, [Move()]));
+		Assert.Single(steps);
+	}
+
+	/// <summary>挿入しても既存ステップと挿入ステップの待機時間は変化しない</summary>
+	[Fact]
+	public void InsertStepsAt_KeepsDelayBeforeMs() {
+		var steps = new List<MacroStep> { Key(10), Down(delayMs: 20) };
+
+		MacroStepEditor.InsertStepsAt(steps, 1, [Move(30)]);
+
+		Assert.Equal([10, 30, 20], steps.Select(step => step.delayBeforeMs));
+	}
+
 	/// <summary>しきい値ちょうどの待機時間は変換対象になる</summary>
 	[Fact]
 	public void UnifyDelays_ThresholdBoundary_IsConverted() {

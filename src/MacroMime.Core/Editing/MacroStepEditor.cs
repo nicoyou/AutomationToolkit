@@ -85,6 +85,21 @@ public static class MacroStepEditor {
 		return removedCount;
 	}
 
+	/// <summary>指定位置へステップ列をまとめて挿入する</summary>
+	/// <remarks>挿入するステップの参照をそのまま格納するため、既存ステップの複製を挿入する場合は呼び出し側で deep clone すること</remarks>
+	/// <param name="steps">編集するステップ列</param>
+	/// <param name="insertIndex">0 始まりの挿入位置。steps.Count を指定すると末尾へ追加する</param>
+	/// <param name="newSteps">挿入するステップ列。順序を保って挿入される</param>
+	/// <returns>挿入したステップ数</returns>
+	/// <exception cref="ArgumentOutOfRangeException">挿入位置がステップ列の範囲外の場合</exception>
+	public static int InsertStepsAt(List<MacroStep> steps, int insertIndex, IReadOnlyList<MacroStep> newSteps) {
+		if (insertIndex < 0 || insertIndex > steps.Count) {
+			throw new ArgumentOutOfRangeException(nameof(insertIndex), "挿入位置がステップ列の範囲外です");
+		}
+		steps.InsertRange(insertIndex, newSteps);
+		return newSteps.Count;
+	}
+
 	/// <summary>指定型ステップの delayBeforeMs のうち、しきい値以上のものを指定値へ短縮する</summary>
 	/// <param name="steps">編集するステップ列</param>
 	/// <param name="thresholdMs">変換対象とする待機時間のしきい値 ( ms )</param>

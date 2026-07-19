@@ -31,6 +31,8 @@
                 <Button Content="■ 停止" Command="{Binding StopTestPlaybackCommand}" Width="80" Margin="0,0,6,0"/>
                 <Separator Margin="6,0"/>
                 <Button Content="↶ 元に戻す" Command="{Binding UndoCommand}" Width="100" Margin="0,0,6,0"/>
+                <Button Content="➕ 行追加" Command="{Binding AddStepCommand}" Width="90" Margin="0,0,6,0"/>
+                <Button Content="⧉ 行複製" Command="{Binding DuplicateSelectedStepsCommand}" Width="90" Margin="0,0,6,0"/>
                 <Button Content="🗑 行削除" Command="{Binding DeleteSelectedStepsCommand}" Width="90"/>
                 <Separator Margin="6,0"/>
                 <TextBlock Text="{Binding TotalDurationText}" VerticalAlignment="Center"/>
@@ -63,6 +65,7 @@
                           VirtualizingPanel.VirtualizationMode="Recycling">
                     <DataGrid.InputBindings>
                         <KeyBinding Key="Delete" Command="{Binding DeleteSelectedStepsCommand}"/>
+                        <KeyBinding Modifiers="Ctrl" Key="D" Command="{Binding DuplicateSelectedStepsCommand}"/>
                     </DataGrid.InputBindings>
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="#" Binding="{Binding index}" Width="60" IsReadOnly="True"/>
@@ -71,7 +74,7 @@
                     </DataGrid.Columns>
                 </DataGrid>
                 <TextBlock Grid.Row="1" Margin="0,4,0,0" Foreground="Gray" TextWrapping="Wrap"
-                           Text="ヒント: 待機 ms はセルをダブルクリックで編集。Ctrl / Shift クリックで複数行選択、Delete キーで選択行を削除。"/>
+                           Text="ヒント: 待機 ms はセルをダブルクリックで編集。Ctrl / Shift クリックで複数行選択、Delete キーで選択行を削除、Ctrl+D で複製。行追加 / 行複製は選択行の直下へ挿入。"/>
 
                 <!-- 操作結果 -->
                 <TextBlock Grid.Row="2" Margin="0,8,0,0" Text="{Binding OperationResultText}"

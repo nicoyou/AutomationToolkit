@@ -1,0 +1,92 @@
+<Window x:Class="MacroMime.App.Views.AddStepDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:MacroMime.App.ViewModels"
+        Title="ステップ追加" Height="340" Width="420"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        d:DataContext="{d:DesignInstance vm:AddStepViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+    </Window.Resources>
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 種別と待機時間 -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+            <TextBlock Text="種別:" VerticalAlignment="Center" Width="60"/>
+            <ComboBox ItemsSource="{Binding kinds}" DisplayMemberPath="label"
+                      SelectedValuePath="kind" SelectedValue="{Binding SelectedKind}" Width="230"/>
+        </StackPanel>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+            <TextBlock Text="待機:" VerticalAlignment="Center" Width="60"/>
+            <TextBox Text="{Binding DelayBeforeMs, UpdateSourceTrigger=PropertyChanged}"
+                     Width="70" VerticalContentAlignment="Center"/>
+            <TextBlock Text=" ms ( 実行前の待機時間 )" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- 座標 ( マウス系のみ ) -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0"
+                    Visibility="{Binding showsCoordinates, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="座標:" VerticalAlignment="Center" Width="60"/>
+            <TextBlock Text="X " VerticalAlignment="Center"/>
+            <TextBox Text="{Binding X, UpdateSourceTrigger=PropertyChanged}"
+                     Width="60" VerticalContentAlignment="Center"/>
+            <TextBlock Text=" Y " VerticalAlignment="Center"/>
+            <TextBox Text="{Binding Y, UpdateSourceTrigger=PropertyChanged}"
+                     Width="60" VerticalContentAlignment="Center"/>
+            <Button x:Name="PickCursorButton" Content="3 秒後にカーソル位置を取得" Margin="12,0,0,0"
+                    Padding="8,0" Click="PickCursor_Click"/>
+        </StackPanel>
+
+        <!-- マウスボタン ( mouseDown / mouseUp のみ ) -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0"
+                    Visibility="{Binding showsMouseButton, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="ボタン:" VerticalAlignment="Center" Width="60"/>
+            <ComboBox ItemsSource="{Binding mouseButtons}" SelectedItem="{Binding SelectedButton}" Width="100"/>
+        </StackPanel>
+
+        <!-- ホイール ( mouseWheel のみ ) -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0"
+                    Visibility="{Binding showsWheel, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="回転量:" VerticalAlignment="Center" Width="60"/>
+            <TextBox Text="{Binding WheelDelta, UpdateSourceTrigger=PropertyChanged}"
+                     Width="60" VerticalContentAlignment="Center"/>
+            <TextBlock Text=" ( 1 ノッチ = ±120。負で下 / 右 )" VerticalAlignment="Center"/>
+            <CheckBox Content="水平" IsChecked="{Binding IsHorizontalWheel}" Margin="12,0,0,0"
+                      VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- キー ( keyDown / keyUp のみ ) -->
+        <StackPanel Grid.Row="4" Margin="0,8,0,0"
+                    Visibility="{Binding showsKeyInput, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="キー:" VerticalAlignment="Center" Width="60"/>
+                <Border Padding="10,6" Background="#F0F0F0" CornerRadius="4" Width="160">
+                    <TextBlock Text="{Binding capturedKeyText}" FontWeight="Bold" HorizontalAlignment="Center"/>
+                </Border>
+                <ToggleButton Content="キーを取得" IsChecked="{Binding IsCapturingKey}" Margin="12,0,0,0"
+                              Padding="8,0" VerticalAlignment="Stretch"/>
+            </StackPanel>
+            <TextBlock Margin="60,4,0,0" Foreground="Gray" TextWrapping="Wrap"
+                       Text="「キーを取得」を押した後、登録したいキーを押してください ( Esc や Enter も登録できます )"/>
+        </StackPanel>
+
+        <!-- OK / キャンセル -->
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="OK" Width="80" IsDefault="True" Command="{Binding ConfirmCommand}" Margin="0,0,8,0"/>
+            <Button Content="キャンセル" Width="80" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>
